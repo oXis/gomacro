@@ -1,6 +1,10 @@
-package gocro
+package gomacro
 
 import (
+	"fmt"
+
+	"golang.org/x/sys/windows/registry"
+
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
 )
@@ -24,6 +28,7 @@ type Document struct {
 type Application struct {
 	_Application *ole.IDispatch
 	Options      *Options
+	Version      string
 }
 
 //Options Holds the OLE app
@@ -47,6 +52,24 @@ func Uninitialize() {
 	ole.CoUninitialize()
 }
 
+func setupRegistry(version string, i uint32) {
+
+	k, err := registry.OpenKey(registry.CURRENT_USER, fmt.Sprintf("Software\\Microsoft\\Office\\%s\\Word\\Security", version), registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		panic(err)
+	}
+	if err := k.SetDWordValue("AccessVBOM", i); err != nil {
+		panic(err)
+	}
+
+	val, _, _ := k.GetIntegerValue("AccessVBOM")
+	fmt.Printf("Software\\Microsoft\\Office\\%s\\Word\\Security to %v\n", version, val)
+
+	if err := k.Close(); err != nil {
+		panic(err)
+	}
+}
+
 ////////// DOCUMENTS METHODS //////////
 
 // NewDocument Create a new Word document
@@ -67,6 +90,9 @@ func (d *Documents) NewDocument(v bool) *Documents {
 	oleutil.PutProperty(d.Application._Application, "Visible", v)
 
 	d._Documents = oleutil.MustGetProperty(d.Application._Application, "Documents").ToIDispatch()
+	d.Application.Version = oleutil.MustGetProperty(d.Application._Application, "Version").ToString()
+
+	setupRegistry(d.Application.Version, 1)
 
 	return d
 }
@@ -102,9 +128,12 @@ func (d *Documents) Save() {
 
 //Close Close doc
 func (d *Documents) Close() {
+
 	oleutil.MustCallMethod(d._Documents, "Close", false)
 	oleutil.MustCallMethod(d.Application._Application, "Quit")
 	d.Application._Application.Release()
+
+	setupRegistry(d.Application.Version, 0)
 }
 
 ////////// DOCUMENT METHODS //////////

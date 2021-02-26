@@ -1,4 +1,4 @@
-package gocro
+package gomacro
 
 import (
 	"errors"

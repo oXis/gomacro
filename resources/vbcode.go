@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/oxis/gocro/pkg/obf"
+	"github.com/oxis/gomacro/pkg/obf"
 )
 
 func init() {

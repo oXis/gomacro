@@ -10,12 +10,12 @@ import (
 
 	"golang.org/x/text/encoding/unicode"
 
-	"github.com/oxis/gocro/pkg/gocro"
-	"github.com/oxis/gocro/pkg/obf"
-	"github.com/oxis/gocro/resources"
+	"github.com/oxis/gomacro/pkg/gomacro"
+	"github.com/oxis/gomacro/pkg/obf"
+	"github.com/oxis/gomacro/resources"
 )
 
-func addTextBox(n int, name string, text string, newForm *gocro.Form) int {
+func addTextBox(n int, name string, text string, newForm *gomacro.Form) int {
 
 	newForm.Add("forms.textbox.1", name)
 	newForm.GetElement(name).SetProperty("Text", text)
@@ -28,7 +28,7 @@ func addTextBox(n int, name string, text string, newForm *gocro.Form) int {
 	return n
 }
 
-func addLabel(n int, name string, text string, newForm *gocro.Form) int {
+func addLabel(n int, name string, text string, newForm *gomacro.Form) int {
 
 	newForm.Add("forms.label.1", name)
 	newForm.GetElement(name).SetProperty("Caption", text)
@@ -40,7 +40,7 @@ func addLabel(n int, name string, text string, newForm *gocro.Form) int {
 	return n
 }
 
-func setupForm(strList map[string]map[int]string, nameMap map[string]string, newForm *gocro.Form, code string) string {
+func setupForm(strList map[string]map[int]string, nameMap map[string]string, newForm *gomacro.Form, code string) string {
 
 	for n, value := range strList["TextBox"] {
 		nameMap[fmt.Sprintf("TextBox%v", n)] = obf.RandStringBytes(12)
@@ -92,13 +92,16 @@ func newEncodedPSScript(script string) (string, error) {
 }
 
 func main() {
-	gocro.Init()
-	defer gocro.Uninitialize()
+	gomacro.Init()
+	defer gomacro.Uninitialize()
 
-	documents := gocro.NewDocuments(false)
+	documents := gomacro.NewDocuments(false)
+	defer documents.Close()
+
+	fmt.Printf("Word version is %s\n", documents.Application.Version)
 
 	document := documents.AddDocument()
-	document.SaveAs("C:\\Users\\test\\go\\src\\github.com\\oxis\\gocro\\cmd\\main\\Test.doc")
+	document.SaveAs("C:\\Users\\test\\go\\src\\github.com\\oxis\\gomacro\\cmd\\main\\Test.doc")
 
 	document.VBProject.SetName(obf.RandStringBytes(12))
 
@@ -139,7 +142,7 @@ func main() {
 
 	code = setupForm(strList, nameMap, newForm, code)
 
-	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandStringBytes(12), gocro.MODULE)
+	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandStringBytes(12), gomacro.MODULE)
 	newModule.CodeModule.AddFromString(code)
 
 	document.Application.Options.SetOption("Pagination", false)
@@ -150,5 +153,4 @@ func main() {
 	document.RemoveDocumentInformation(99)
 	document.UndoClear()
 	documents.Save()
-	documents.Close()
 }

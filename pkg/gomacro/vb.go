@@ -1,4 +1,4 @@
-package gocro
+package gomacro
 
 import (
 	"github.com/go-ole/go-ole"
