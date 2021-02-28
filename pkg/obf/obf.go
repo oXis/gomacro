@@ -113,12 +113,30 @@ func getVariables(code string) []string {
 	return ret
 }
 
+func getStrings(code string) []string {
+	str := regexp2.MustCompile(`"(.+?)"`, 0)
+	gprs := regexp2FindAllString(str, code)
+
+	var ret []string
+
+	for _, g := range gprs {
+		// for _, g2 := range g {
+		// 	fmt.Printf("%s\n", g2.String())
+		// }
+		fmt.Printf("str: %s\n", g[0].String())
+		ret = append(ret, g[0].String())
+	}
+
+	return ret
+}
+
 // ObfuscateVBCode ...
-func ObfuscateVBCode(code string, size int) (string, map[string]string, map[string]string, map[string]string) {
+func ObfuscateVBCode(code string, size int) (string, map[string]string, map[string]string, map[string]string, []string) {
 
 	functions := removeDuplicatesFromSlice(getFunctions(code))
 	parameters := removeDuplicatesFromSlice(getFunctionsParameters(code))
 	variables := removeDuplicatesFromSlice(getVariables(code))
+	str := removeDuplicatesFromSlice(getStrings(code))
 
 	funcMap := make(map[string]string)
 	for _, s := range functions {
@@ -138,5 +156,11 @@ func ObfuscateVBCode(code string, size int) (string, map[string]string, map[stri
 		code = strings.ReplaceAll(code, p, varMap[p])
 	}
 
-	return code, funcMap, paramMap, varMap
+	stringMap := make(map[string]string)
+	for i, p := range str {
+		stringMap[p] = fmt.Sprintf("%v(%v(UserForm1.TextBox%v))", funcMap["Decode"], funcMap["Ssplit"], i)
+		code = strings.ReplaceAll(code, p, stringMap[p])
+	}
+
+	return code, funcMap, paramMap, varMap, str
 }

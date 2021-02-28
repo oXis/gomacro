@@ -129,6 +129,12 @@ func (d *Documents) Save() {
 //Close Close doc
 func (d *Documents) Close() {
 
+	defer func() {
+		if r := recover(); r != nil {
+			ole.CoInitialize(0)
+		}
+	}()
+
 	oleutil.MustCallMethod(d._Documents, "Close", false)
 	oleutil.MustCallMethod(d.Application._Application, "Quit")
 	d.Application._Application.Release()
