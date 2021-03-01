@@ -32,6 +32,22 @@ Public Function EntryPoint()
 End Function
 `
 
+// FormatVBAFunction ...
+var FormatVBAFunction string = `
+Public Function Format(ParamArray arr() As Variant) As String
+
+    Dim i As Long
+    Dim temp As String
+
+    temp = CStr(arr(0))
+    For i = 1 To UBound(arr)
+        temp = Replace(temp, "{" & i - 1 & "}", CStr(arr(i)))
+    Next
+
+    Format = temp
+End Function
+`
+
 // StringDecryptFunction code for reconstructiong the strings
 var StringDecryptFunction string = `
 Public Function Ssplit(str As String)
@@ -48,6 +64,19 @@ Public Function Decode(arrayofWords As Variant)
     ret = ret + (Chr(arrayofWords(counter) + offset))
     Next
     Decode = ret
+End Function
+
+Public Function Format(ParamArray arr() As Variant) As String
+
+    Dim counter As Long
+    Dim temporary As String
+
+    temporary = CStr(arr(0))
+    For counter = 1 To UBound(arr)
+    temporary = Replace(temporary, "{" & counter - 1 & "}", CStr(arr(counter)))
+    Next
+
+    Format = temporary
 End Function
 `
 

