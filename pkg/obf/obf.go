@@ -30,8 +30,6 @@ func RandStringBytes(n int) string {
 
 // RandWord ...
 func RandWord() string {
-	// optionally set the number of words you want
-
 	babbler.Count = 1
 	word := strings.ToLower(babbler.Babble())
 
@@ -199,7 +197,6 @@ func shuffleString(str string) (string, string) {
 
 	for _, s := range randIndex {
 		formatString += fmt.Sprintf("{%v}", s)
-		// formatStringList += fmt.Sprintf(`"%v",`, tmpStringList[s])
 	}
 
 	for i, s := range randIndex {
