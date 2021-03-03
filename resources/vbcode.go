@@ -86,5 +86,5 @@ var Offset string = fmt.Sprint(rand.Intn(128))
 // Sep Separator for split function - Label2
 var Sep string = obf.RandStringBytes(3)
 
-// TextBox99 Powershell payload, needs to be base64 UTF-16 encoded
+// PSPayload Powershell payload, needs to be base64 UTF-16 encoded
 var PSPayload string = "powershell -e %s"
