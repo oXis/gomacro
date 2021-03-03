@@ -5,6 +5,8 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -113,6 +115,11 @@ func main() {
 	defer documents.Close()
 
 	fmt.Printf("Word version is %s\n", documents.Application.Version)
+	currpath, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(currpath)
 
 	// Add a new document
 	document := documents.AddDocument()
@@ -186,6 +193,7 @@ func main() {
 	// Can't go back
 	document.UndoClear()
 	// Save and close
-	document.SaveAs(".\\Test.doc")
+
+	document.SaveAs(path.Join(currpath, "Test.doc"))
 	documents.Save()
 }
