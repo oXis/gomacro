@@ -19,21 +19,18 @@ type Documents struct {
 
 // Document represents a Word document
 type Document struct {
-	_Document   *ole.IDispatch
-	Application *Application
-	VBProject   *VBProject
+	_Document    *ole.IDispatch
+	Application  *Application
+	VBProject    *VBProject
+	InlineShapes *InlineShapes
 }
 
-//Application Holds the OLE app
-type Application struct {
-	_Application *ole.IDispatch
-	Options      *Options
-	Version      string
+type InlineShapes struct {
+	_InlineShapes *ole.IDispatch
 }
 
-//Options Holds the OLE app
-type Options struct {
-	_Options *ole.IDispatch
+type Object struct {
+	_Object *ole.IDispatch
 }
 
 // Init to init OLE binding
@@ -42,9 +39,9 @@ func Init() {
 }
 
 // NewDocuments Create a new document
-func NewDocuments(v bool) *Documents {
+func NewDocuments(visible bool) *Documents {
 	doc := &Documents{}
-	return doc.NewDocument(v)
+	return doc.NewDocument(visible)
 }
 
 //Uninitialize ...
@@ -73,7 +70,7 @@ func setupRegistry(version string, i uint32) {
 ////////// DOCUMENTS METHODS //////////
 
 // NewDocument Create a new Word document
-func (d *Documents) NewDocument(v bool) *Documents {
+func (d *Documents) NewDocument(visible bool) *Documents {
 	unknown, err := oleutil.CreateObject("Word.Application")
 	if err != nil {
 		panic("Cannot create Word.Application")
@@ -87,10 +84,11 @@ func (d *Documents) NewDocument(v bool) *Documents {
 	d.Application = &Application{_Application: word,
 		Options: &Options{_Options: oleutil.MustGetProperty(word, "Options").ToIDispatch()}}
 
-	oleutil.PutProperty(d.Application._Application, "Visible", v)
+	d.Application.Init()
+
+	oleutil.PutProperty(d.Application._Application, "Visible", visible)
 
 	d._Documents = oleutil.MustGetProperty(d.Application._Application, "Documents").ToIDispatch()
-	d.Application.Version = oleutil.MustGetProperty(d.Application._Application, "Version").ToString()
 
 	setupRegistry(d.Application.Version, 1)
 
@@ -100,12 +98,11 @@ func (d *Documents) NewDocument(v bool) *Documents {
 // AddDocument Add a new page to the document. Also init VBProject and subsequent
 func (d *Documents) AddDocument() *Document {
 	d.Document = &Document{_Document: oleutil.MustCallMethod(d._Documents, "Add").ToIDispatch()}
+	d.Document.Init()
+
+	d.Document.InlineShapes = &InlineShapes{_InlineShapes: oleutil.MustGetProperty(d.Document._Document, "InlineShapes").ToIDispatch()}
 
 	d.Document.Application = d.Application
-
-	d.Document.VBProject = &VBProject{
-		_VBProject: oleutil.MustGetProperty(d.Document._Document, "VBProject").ToIDispatch(),
-	}
 
 	d.Document.VBProject.GetVBComponentsObject()
 
@@ -143,6 +140,12 @@ func (d *Documents) Close() {
 }
 
 ////////// DOCUMENT METHODS //////////
+
+func (d *Document) Init() {
+	d.VBProject = &VBProject{
+		_VBProject: oleutil.MustGetProperty(d._Document, "VBProject").ToIDispatch(),
+	}
+}
 
 // GetVBProjectObject Get VBProject
 func (d *Document) GetVBProjectObject() *ole.IDispatch {
@@ -186,29 +189,30 @@ func (d *Document) Save() {
 	oleutil.MustCallMethod(d._Document, "Save")
 }
 
-////////// APPLICATION METHODS //////////
-
-// SetOption Set the option to value
-func (a *Application) SetOption(option string, param ...interface{}) {
-	oleutil.MustPutProperty(a._Application, option, param...).ToIDispatch()
-}
-
-// ScreenRefresh ...
-func (a *Application) ScreenRefresh() {
-	oleutil.MustCallMethod(a._Application, "ScreenRefresh").ToIDispatch()
-}
-
-// GetApplicationObject Get documents
-func (a *Application) GetApplicationObject() *ole.IDispatch {
-	if a._Application == nil {
-		panic("No documents present in Documents")
-	}
-	return a._Application
-}
-
 ////////// OPTIONS METHODS //////////
 
 // SetOption Set the option to value
 func (o *Options) SetOption(option string, param ...interface{}) {
 	oleutil.MustPutProperty(o._Options, option, param...).ToIDispatch()
+}
+
+////////// InlineShapes METHODS //////////
+
+func (i *InlineShapes) GetInlineShapes() *ole.IDispatch {
+	return i._InlineShapes
+}
+
+func (i *InlineShapes) AddOLEObject(param ...interface{}) *Object {
+	obj := oleutil.MustCallMethod(i._InlineShapes, "AddOLEObject", param...).ToIDispatch()
+
+	return &Object{_Object: obj}
+
+}
+
+func (o *Object) SetWidth(width int) {
+	oleutil.MustPutProperty(o._Object, "width", width).ToIDispatch()
+}
+
+func (o *Object) Setheight(height int) {
+	oleutil.MustPutProperty(o._Object, "height", height).ToIDispatch()
 }
