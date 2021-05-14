@@ -8,3 +8,6 @@ Small utility and lib to create Word Documents with malicious macros.
 - `resources` contains macro VB code
 
 The main file is heavily commented so you can follow the steps to make a doc.
+
+Blogpost [here](https://oxis.github.io/GoMacro,-a-small-utility-to-create-Word-macros-with-Go/)
+
